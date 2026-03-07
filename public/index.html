@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CloneX</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="logo" href="/">CloneMyWeb</a>
+      <nav class="nav">
+        <a href="https://github.com/pranjalmewaraa" target="_blank">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <section class="tool-card">
+        <h1>Clone Any Website Instantly</h1>
+        <p class="lede">
+          Paste a website URL and download its full structure including HTML,
+          CSS, JS, and assets.
+        </p>
+
+        <form id="clone-form" class="tool-form">
+          <input
+            id="url"
+            type="url"
+            placeholder="https://example.com"
+            required
+          />
+          <button id="submit-btn" type="submit">Clone Website</button>
+        </form>
+
+        <p class="helper">Works best with static and public websites.</p>
+
+        <section id="progress" class="progress hidden" aria-live="polite">
+          <div class="bar"><span id="bar-fill"></span></div>
+          <ul class="steps" id="steps">
+            <li data-step="0">Scanning website</li>
+            <li data-step="1">Fetching assets</li>
+            <li data-step="2">Building project structure</li>
+            <li data-step="3">Preparing download</li>
+          </ul>
+        </section>
+
+        <section id="result" class="result hidden">
+          <a id="download-link" class="btn secondary" href="#" download
+            >Download ZIP</a
+          >
+          <button id="reset-btn" class="btn ghost" type="button">
+            Clone another website
+          </button>
+        </section>
+
+        <p id="error" class="error hidden"></p>
+      </section>
+
+      <section class="meta">
+        <article class="mini-card">
+          <h2>How it works</h2>
+          <ol>
+            <li>Paste a website URL</li>
+            <li>Our engine scans and downloads all resources</li>
+            <li>Get a ZIP file with the full site structure</li>
+          </ol>
+        </article>
+
+        <article class="mini-card">
+          <h2>Supported content</h2>
+          <div class="grid">
+            <span>HTML</span>
+            <span>CSS</span>
+            <span>JavaScript</span>
+            <span>Images &amp; Assets</span>
+          </div>
+        </article>
+
+        <p class="note">
+          Only clone websites you own or have permission to download.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span
+        >CloneMyWeb ~ by
+        <a href="https://pranjalmewaraa.netlify.app"
+          >Pranjal Kachhawaha</a
+        ></span
+      >
+
+      <a href="mailto@mewarapranjal089@gmail.com">Contact</a>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

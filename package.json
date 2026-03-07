@@ -1,0 +1,32 @@
+{
+  "name": "webcloner",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "worker": "node src/workers/clone.worker.js",
+    "dev": "nodemon src/server.js",
+    "dev:worker": "nodemon src/workers/clone.worker.js",
+    "test": "echo \"No tests configured\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "axios": "^1.13.6",
+    "bullmq": "^5.70.4",
+    "cheerio": "^1.2.0",
+    "express": "^5.2.1",
+    "mime-types": "^3.0.2",
+    "p-limit": "^7.3.0",
+    "playwright": "^1.58.2",
+    "puppeteer": "^24.38.0",
+    "redis": "^5.11.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
