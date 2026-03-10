@@ -7,6 +7,8 @@ const { interceptNetwork } = require("../services/interceptor.service");
 const { createAssetManager } = require("../services/asset.service");
 const { crawlInternalPages } = require("../services/crawler.service");
 const { rewriteAll } = require("../services/rewrite.service");
+const { collectRuntimeStyles } = require("../services/runtime-style.service");
+const { fetchMissingStylesheets } = require("../services/stylesheet.service");
 const { zipDirectory } = require("../services/zip.service");
 const { getPageOutputPath, normalizeUrl } = require("../utils/url.util");
 
@@ -50,11 +52,14 @@ async function cloneSite(job) {
           timeout: Number(process.env.PAGE_TIMEOUT_MS || 45000),
         });
 
+        await fetchMissingStylesheets(page, pageUrl, assetManager);
+        const runtimeCss = await collectRuntimeStyles(page);
+
         const html = await page.content();
         const outputPath = getPageOutputPath(pageUrl, rootUrl);
         await assetManager.writeFileRelative(outputPath, html);
 
-        pages.push({ url: pageUrl, outputPath, depth });
+        pages.push({ url: pageUrl, outputPath, depth, runtimeCss });
         pageMap.set(pageUrl, outputPath);
 
         await job.updateProgress({

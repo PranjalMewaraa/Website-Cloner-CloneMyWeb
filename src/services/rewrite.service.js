@@ -42,7 +42,7 @@ function rewriteSrcSet(srcset, currentPageUrl, currentOutputPath, assetMap, page
 }
 
 function rewriteCssContent(cssText, fileLocalPath, sourceUrl, assetMap) {
-  return cssText.replace(/url\(([^)]+)\)/gi, (full, group) => {
+  let rewritten = cssText.replace(/url\(([^)]+)\)/gi, (full, group) => {
     const raw = group.trim().replace(/^['"]|['"]$/g, "");
     if (!raw || raw.startsWith("data:")) {
       return full;
@@ -57,39 +57,79 @@ function rewriteCssContent(cssText, fileLocalPath, sourceUrl, assetMap) {
     const relative = relativeTo(fileLocalPath, mapped.localPath);
     return `url('${relative}')`;
   });
+
+  rewritten = rewritten.replace(/@import\s+(?:url\()?['"]?([^'")]+)['"]?\)?/gi, (full, raw) => {
+    if (!raw || raw.startsWith("data:")) {
+      return full;
+    }
+
+    const absoluteCandidate = normalizeUrl(raw, sourceUrl);
+    const mapped = (absoluteCandidate && assetMap.get(absoluteCandidate)) || assetMap.get(raw);
+    if (!mapped) {
+      return full;
+    }
+
+    const relative = relativeTo(fileLocalPath, mapped.localPath);
+    return `@import url('${relative}')`;
+  });
+
+  return rewritten;
+}
+
+async function inlineLocalStylesheets($, currentPageUrl, currentOutputPath, buildDir, assetMap, pageMap) {
+  const stylesheetLinks = $("link[rel='stylesheet'][href], link[as='style'][href]");
+  const pageAbsolutePath = path.join(buildDir, currentOutputPath);
+
+  for (const el of stylesheetLinks.toArray()) {
+    const href = $(el).attr("href");
+    if (!href) {
+      continue;
+    }
+
+    const mapped = resolveMappedTarget(href, currentPageUrl, currentOutputPath, assetMap, pageMap);
+    if (!mapped || !mapped.endsWith(".css")) {
+      continue;
+    }
+
+    const absoluteCssPath = path.resolve(path.dirname(pageAbsolutePath), mapped);
+    let cssText;
+    try {
+      cssText = await fs.readFile(absoluteCssPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    $(el).replaceWith(`<style data-clonex-inline="true">\n${cssText}\n</style>`);
+  }
+}
+
+function rewriteInlineStyleTags($, currentPageUrl, currentOutputPath, assetMap) {
+  $("style").each((_, el) => {
+    const cssText = $(el).html();
+    if (!cssText || $(el).attr("data-clonex-inline") === "true" || $(el).attr("data-clonex-runtime") === "true") {
+      return;
+    }
+
+    const rewritten = rewriteCssContent(cssText, currentOutputPath, currentPageUrl, assetMap);
+    $(el).text(rewritten);
+  });
+}
+
+function injectRuntimeStyles($, runtimeCss, currentPageUrl, currentOutputPath, assetMap) {
+  if (!runtimeCss || !runtimeCss.trim()) {
+    return;
+  }
+
+  const head = $("head");
+  if (head.length === 0) {
+    return;
+  }
+
+  const rewritten = rewriteCssContent(runtimeCss, currentOutputPath, currentPageUrl, assetMap);
+  head.append(`<style data-clonex-runtime="true">\n${rewritten}\n</style>`);
 }
 
 async function rewriteAll({ buildDir, pages, assetMap, pageMap }) {
-  for (const page of pages) {
-    const fullPagePath = path.join(buildDir, page.outputPath);
-    let html = await fs.readFile(fullPagePath, "utf8");
-
-    const $ = cheerio.load(html);
-
-    URL_ATTRS.forEach((attr) => {
-      $(`[${attr}]`).each((_, el) => {
-        const value = $(el).attr(attr);
-        if (!value || value.startsWith("data:")) {
-          return;
-        }
-
-        if (attr === "srcset") {
-          const rewritten = rewriteSrcSet(value, page.url, page.outputPath, assetMap, pageMap);
-          $(el).attr(attr, rewritten);
-          return;
-        }
-
-        const mapped = resolveMappedTarget(value, page.url, page.outputPath, assetMap, pageMap);
-        if (mapped) {
-          $(el).attr(attr, mapped);
-        }
-      });
-    });
-
-    html = $.html();
-    await fs.writeFile(fullPagePath, html, "utf8");
-  }
-
   for (const record of assetMap.values()) {
     if (!record.localPath.endsWith(".css") && !record.contentType.includes("css")) {
       continue;
@@ -117,6 +157,40 @@ async function rewriteAll({ buildDir, pages, assetMap, pageMap }) {
     }
 
     await fs.writeFile(jsPath, js, "utf8");
+  }
+
+  for (const page of pages) {
+    const fullPagePath = path.join(buildDir, page.outputPath);
+    let html = await fs.readFile(fullPagePath, "utf8");
+
+    const $ = cheerio.load(html);
+
+    URL_ATTRS.forEach((attr) => {
+      $(`[${attr}]`).each((_, el) => {
+        const value = $(el).attr(attr);
+        if (!value || value.startsWith("data:")) {
+          return;
+        }
+
+        if (attr === "srcset") {
+          const rewritten = rewriteSrcSet(value, page.url, page.outputPath, assetMap, pageMap);
+          $(el).attr(attr, rewritten);
+          return;
+        }
+
+        const mapped = resolveMappedTarget(value, page.url, page.outputPath, assetMap, pageMap);
+        if (mapped) {
+          $(el).attr(attr, mapped);
+        }
+      });
+    });
+
+    await inlineLocalStylesheets($, page.url, page.outputPath, buildDir, assetMap, pageMap);
+    rewriteInlineStyleTags($, page.url, page.outputPath, assetMap);
+    injectRuntimeStyles($, page.runtimeCss, page.url, page.outputPath, assetMap);
+
+    html = $.html();
+    await fs.writeFile(fullPagePath, html, "utf8");
   }
 }
 

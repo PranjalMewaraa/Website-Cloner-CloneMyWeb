@@ -2,6 +2,18 @@ const crypto = require("crypto");
 const path = require("path");
 const mime = require("mime-types");
 
+function getUrlExtension(url) {
+  try {
+    return path.extname(new URL(url).pathname).toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function isFontExtension(ext) {
+  return [".woff", ".woff2", ".ttf", ".otf", ".eot"].includes(ext);
+}
+
 function normalizeUrl(input, baseUrl) {
   try {
     const url = new URL(input, baseUrl);
@@ -29,28 +41,29 @@ function hashUrl(url) {
   return crypto.createHash("sha1").update(url).digest("hex");
 }
 
-function classifyContentType(contentType = "") {
+function classifyContentType(contentType = "", url = "") {
   const type = contentType.toLowerCase();
+  const ext = getUrlExtension(url);
   if (type.includes("text/css")) return "css";
   if (type.includes("javascript") || type.includes("ecmascript")) return "js";
   if (type.includes("image/")) return "images";
-  if (type.includes("font/") || type.includes("woff") || type.includes("ttf") || type.includes("otf")) return "fonts";
+  if (type.includes("font/") || type.includes("woff") || type.includes("ttf") || type.includes("otf") || isFontExtension(ext)) {
+    return "fonts";
+  }
   if (type.includes("application/json") || type.includes("text/json")) return "api";
   if (type.includes("text/html")) return "html";
   return "misc";
 }
 
 function inferExtension(url, contentType = "") {
-  const fromType = mime.extension((contentType || "").split(";")[0].trim());
-  if (fromType) return `.${fromType}`;
+  const urlExt = getUrlExtension(url);
+  if (isFontExtension(urlExt)) return urlExt;
 
-  try {
-    const pathname = new URL(url).pathname;
-    const ext = path.extname(pathname);
-    if (ext) return ext;
-  } catch {
-    // ignore
-  }
+  const contentTypeValue = (contentType || "").split(";")[0].trim();
+  const fromType = mime.extension(contentTypeValue);
+  if (fromType && fromType !== "bin") return `.${fromType}`;
+
+  if (urlExt) return urlExt;
 
   return ".bin";
 }

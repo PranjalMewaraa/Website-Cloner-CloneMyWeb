@@ -66,7 +66,7 @@ function createAssetManager(jobDir) {
       return map.get(url);
     }
 
-    const folder = classifyContentType(contentType);
+    const folder = classifyContentType(contentType, url);
     if (folder === "html") {
       return null;
     }
@@ -97,6 +97,10 @@ function createAssetManager(jobDir) {
     return map;
   }
 
+  function getAssetByUrl(url) {
+    return map.get(url) || null;
+  }
+
   async function flushManifest() {
     const manifest = Array.from(map.values());
     const manifestPath = path.join(jobDir, "asset-manifest.json");
@@ -123,6 +127,7 @@ function createAssetManager(jobDir) {
     initialize,
     saveAsset,
     getMap,
+    getAssetByUrl,
     flushManifest,
     writeFileRelative,
     readFileSync,
